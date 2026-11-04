@@ -18,7 +18,7 @@ Work from the project root (`PLAN.md`, `features/` relative to it).
 - `--dry-run` (with any target) → run the pre-flight, print the plan (branch, order, steps per feature, GO/NO-GO), then stop without launching a session.
 - Anything unrecognized (an ID matching no PLAN.md row and no spec file, a phase that doesn't exist, a garbled argument) → do not guess and do not start: report the argument you received, list the valid targets from PLAN.md, and stop.
 
-If the user named a model, turn limit, or tool restriction, carry it onto **every** launch (`--model <alias|id>`, `--max-turns <n>`, `--allowedTools …` / `--disallowedTools …`).
+If the user named a model, cost limit, or tool restriction, carry it onto **every** launch (`--model <alias|id>`, `--max-budget-usd <amount>`, `--allowedTools …` / `--disallowedTools …`).
 
 **Session budget:** cap the run at 12 launched sessions unless the user gave a number. Every launch counts — steps, retries, and cross-skill interventions. When the cap is reached, stop cleanly at the current feature boundary and report what remains.
 
@@ -41,7 +41,7 @@ Discover the project's own conventions — never assume a layout. Read the commi
 - Network reachable if images, packages, or npx downloads must be fetched.
 - **Claude Code CLI is usable non-interactively.** `claude --version` must succeed, then run one cheap smoke test with the exact permission flag the run will use:
   ```sh
-  claude -p --permission-mode bypassPermissions --max-turns 1 --output-format json "Reply with exactly: OK" | python3 -c 'import json,sys; r=json.load(sys.stdin); print("is_error=",r.get("is_error"), "result=", r.get("result"))'
+  claude -p --permission-mode bypassPermissions --output-format json "Reply with exactly: OK" | python3 -c 'import json,sys; r=json.load(sys.stdin); print("is_error=",r.get("is_error"), "result=", r.get("result"))'
   ```
   Expect `is_error= False` and `OK`. This catches a missing login/API key and a refused permission mode before any real step. `bypassPermissions` is refused when running as root outside a sandbox — if the smoke test fails for that reason, abort and tell the user to run as a non-root user or inside a container/sandbox (`IS_SANDBOX=1`), or to name an explicit `--allowedTools` list to use with `--permission-mode acceptEdits` instead. Never fall back to an interactive permission mode: a child that waits for a permission prompt hangs forever.
 - **The `project` plugin is available to child sessions.** Children are plain `claude -p` processes started from the project root; they load the user's installed plugins and the project's `.claude/` settings. If the plugin was installed with `--scope local` in a different directory, children won't see it — confirm `claude plugin list` (or the equivalent `/plugin` listing) shows `project` as enabled for this directory.
@@ -105,7 +105,7 @@ setsid nohup bash -c 'claude -p --permission-mode bypassPermissions --output-for
 - **Why the `.rc` file:** once the launcher shell exits there is no `wait` and no `$?` for the session, and `$!` may not even be the `claude` PID (`setsid` forks). `echo "$?" >"$rc"` is the only durable record of the real exit code. Read it — never infer success from output alone.
 - **Why `--output-format stream-json --verbose`:** in default text mode `claude -p` writes nothing until it finishes, so the log sits at 0 bytes for the whole step and gives no signal at all. Stream-JSON (which requires `--verbose` in print mode) writes one JSON event per line as it happens — `system/init`, `assistant` messages with `tool_use` blocks, `user` messages with `tool_result` blocks — and ends with a single terminal `{"type":"result", "subtype":…, "is_error":…, "result":"<final text>", "num_turns":…, "total_cost_usd":…}` event. The log doubles as a live progress feed and as the record of the outcome.
 - `setsid` puts the child in its own session so killing my process group cannot take it down; because of that fork, do **not** treat `$!` as the claude PID.
-- Carry any user-requested `--model` / `--max-turns` / `--allowedTools` / `--disallowedTools` flags onto the `claude` line inside the wrapper.
+- Carry any user-requested `--model` / `--max-budget-usd` / `--allowedTools` / `--disallowedTools` flags onto the `claude` line inside the wrapper.
 
 **3. Wait adaptively — and never use `kill -0` as the liveness test.** In a container the launcher exits immediately, the finished `claude` can be reparented to a PID 1 that does not reap it and stay `<defunct>`: `kill -0 <pid>` on a zombie **succeeds**, so a completed step looks like it is still running. Test the sentinel. Wait with a bounded until-loop (not a bare `sleep`) so each tool call returns as soon as the step finishes, and do all checking in that *one* call:
 ```sh
@@ -131,7 +131,7 @@ if not res: print("NO RESULT EVENT — session did not finish cleanly"); sys.exi
 print("subtype=",res.get("subtype"),"is_error=",res.get("is_error"),"turns=",res.get("num_turns"),"cost_usd=",res.get("total_cost_usd"))
 print(res.get("result",""))' "$log"
 ```
-Expect `subtype= success` and `is_error= False`. `error_max_turns` means the child hit `--max-turns`; `error_during_execution` or a missing result event means it crashed.
+Expect `subtype= success` and `is_error= False`. `error_max_turns` / a budget error means the child hit its turn or `--max-budget-usd` limit; `error_during_execution` or a missing result event means it crashed.
 
 ### THE PREAMBLE — use verbatim, extended per step
 `<test-command>` is the command recorded in pre-flight 2b.

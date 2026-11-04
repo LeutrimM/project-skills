@@ -50,7 +50,7 @@ For cloud sessions (claude.ai/code), add to the project repo's `.claude/settings
   Run the autopilot in a sandbox/container or a throwaway clone — children have full tool access.
   `bypassPermissions` is refused as root outside a sandbox; the pre-flight smoke test catches that.
 - Each step: prompt file → detached session → `.rc` exit-code sentinel → log in `/tmp/autopilot-*.log`.
-- Optional flags you can ask for: model (`--model`), `--max-turns`, `--allowedTools`/`--disallowedTools`.
+- Optional flags you can ask for: model (`--model`), cost cap (`--max-budget-usd`), `--allowedTools`/`--disallowedTools`.
 - Nothing is merged or pushed; the branch is handed back for review.
 
 ## Changes vs. upstream
