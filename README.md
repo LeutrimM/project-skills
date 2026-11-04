@@ -26,7 +26,7 @@ Status per spec: `Planned → Architected → Implemented → In Review → Appr
 ## Install
 
 ```bash
-claude plugin marketplace add <github-user>/project-skills
+claude plugin marketplace add LeutrimM/project-skills
 claude plugin install project@project-skills
 ```
 
@@ -38,7 +38,7 @@ For cloud sessions (claude.ai/code), add to the project repo's `.claude/settings
 ```json
 {
   "extraKnownMarketplaces": {
-    "project-skills": { "source": { "source": "github", "repo": "<github-user>/project-skills" } }
+    "project-skills": { "source": { "source": "github", "repo": "LeutrimM/project-skills" } }
   },
   "enabledPlugins": { "project@project-skills": true }
 }
