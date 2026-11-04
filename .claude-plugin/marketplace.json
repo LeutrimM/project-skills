@@ -1,0 +1,11 @@
+{
+  "name": "project-skills",
+  "owner": { "name": "Mustafa" },
+  "plugins": [
+    {
+      "name": "project",
+      "source": "./",
+      "description": "Spec-driven project workflow skills (plan, spec, architecture, implement, QA, autopilot)."
+    }
+  ]
+}

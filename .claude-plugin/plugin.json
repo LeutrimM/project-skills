@@ -1,0 +1,8 @@
+{
+  "name": "project",
+  "version": "1.0.0",
+  "description": "Spec-driven project workflow: plan → spec → architecture → implement → QA, plus refine, doctor, help and an unattended autopilot running on claude -p.",
+  "author": { "name": "Mustafa" },
+  "license": "MIT",
+  "keywords": ["workflow", "spec", "planning", "qa", "autopilot"]
+}
